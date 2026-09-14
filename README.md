@@ -1,6 +1,6 @@
 # Lane Detection in Adverse Weather
 
-Robust, real-time lane detection for rain, fog, and night-time driving conditions on Indian roads — a B.E. Semester V minor project (MIT Vishwaprayag University, School of Computing).
+Robust, real-time lane detection for rain, fog, and night-time driving conditions on Indian roads — a B.Tech Semester V minor project (MIT Vishwaprayag University, School of Computing).
 
 ## Problem
 
@@ -78,7 +78,7 @@ _To be added as the pipeline is implemented — training, evaluation, and servin
 
 ## Tech stack
 
-Python · PyTorch · OpenCV · ONNX / TorchScript · FastAPI · Jetson Nano / Raspberry Pi (target embedded hardware)
+Python · PyTorch · OpenCV · ONNX / TorchScript · FastAPI 
 
 ## References
 
