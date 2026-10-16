@@ -1,4 +1,4 @@
-# `data/` — Datasets for Lane Detection in Adverse Weather
+# Datasets for Lane Detection in Adverse Weather
 
 This folder holds everything dataset-related for the project: where the data comes from, how it is laid out on disk, how annotations are converted into one common format, and how to reproduce the splits we train on.
 
