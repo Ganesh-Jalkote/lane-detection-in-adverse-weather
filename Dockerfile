@@ -15,9 +15,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt ./requirements.txt
 
 # requirements.txt intentionally leaves PyTorch to be installed per machine.
+# It also lists both opencv-python and opencv-contrib-python; install only contrib
+# inside this image to avoid overlapping OpenCV wheels.
 RUN python -m pip install --upgrade pip && \
     python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
-    python -m pip install -r requirements.txt
+    sed '/^opencv-python>=/d' requirements.txt > /tmp/requirements-docker.txt && \
+    python -m pip install -r /tmp/requirements-docker.txt
 
 COPY . .
 
