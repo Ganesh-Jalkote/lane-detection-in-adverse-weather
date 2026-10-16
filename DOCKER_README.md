@@ -25,10 +25,10 @@ The check should print PyTorch/OpenCV versions and `CUDA available: False`. That
 
 ## 3. Run a prediction using a trained checkpoint
 
-Create/ensure a host folder `runs/main` and place your trained checkpoint at `runs/main/best.pt`. Put an input image at the repository root named `sample.jpg`, then run:
+Create/ensure a host folder `runs/main` and place your trained checkpoint at `runs/main/best.pt`. Put an input image at `data/my_images/sample.jpg` (the `data/` folder is mounted into the container), then run:
 
 ```powershell
-docker compose run --rm lane-detection python /app/src/lane_detection/lane_ufld.py predict --ckpt /app/runs/main/best.pt --source /app/sample.jpg --out /app/pred_out/sample_pred.png
+docker compose run --rm lane-detection python /app/src/lane_detection/lane_ufld.py predict --ckpt /app/runs/main/best.pt --source /app/data/my_images/sample.jpg --out /app/pred_out/sample_pred.png
 ```
 
 The output appears in your local `pred_out` directory. The checkpoint must be from this model implementation.
