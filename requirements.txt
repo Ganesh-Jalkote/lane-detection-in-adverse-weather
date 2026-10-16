@@ -1,0 +1,39 @@
+# Lane Detection in Adverse Weather (night / fog / rain)
+# UFLD-style ResNet-18 row-anchor detector + enhancement pre-processing + FastAPI serving
+#
+# PyTorch is NOT listed here on purpose, because the right build depends on the machine.
+# Install it first:
+#   CUDA (RTX 4050 / Kaggle):  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+#   CPU only (local laptop):   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# Then: pip install -r requirements.txt
+
+# --- Core numerics / data ---
+numpy>=1.26
+scipy>=1.11
+pandas>=2.1
+pyyaml>=6.0
+tqdm>=4.66
+
+# --- Computer vision / pre-processing (CLAHE, Retinex, DCP dehazing) ---
+opencv-python>=4.9
+opencv-contrib-python>=4.9   # remove if you only want opencv-python (do not install both in a clean env)
+pillow>=10.2
+scikit-image>=0.22
+
+# --- Evaluation / plotting ---
+scikit-learn>=1.4
+matplotlib>=3.8
+seaborn>=0.13
+
+# --- Export and inference ---
+onnx>=1.16
+onnxruntime>=1.18            # use onnxruntime-gpu on the CUDA machine
+
+# --- Serving (web interface) ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9      # file/image uploads in FastAPI
+jinja2>=3.1                  # HTML templates for the web UI
+
+# --- Dev / testing ---
+pytest>=8.0
