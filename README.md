@@ -87,3 +87,16 @@ Key sources are listed in the [project synopsis](docs/) — including MoRTH road
 ## License
 
 See [LICENSE](LICENSE).
+
+## Run with Docker
+
+A CPU-first Docker environment is provided in `Dockerfile`, `.dockerignore`, and `docker-compose.yml`. See [DOCKER_README.md](DOCKER_README.md) for prediction and training examples.
+
+From the repository root, with Docker Desktop running:
+
+```powershell
+docker compose build
+docker compose run --rm lane-detection
+```
+
+This verifies that PyTorch and OpenCV import successfully. The current `serving/app.py` is only a placeholder, so the FastAPI web interface is not runnable yet. This setup is CPU-only; see the Docker guide before attempting GPU training.
