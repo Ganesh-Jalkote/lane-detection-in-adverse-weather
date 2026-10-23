@@ -1,91 +1,56 @@
-# Datasets for Lane Detection in Adverse Weather
+# Dataset setup and evaluation notes
 
-This folder holds everything dataset-related for the project: where the data comes from, how it is laid out on disk, how annotations are converted into one common format, and how to reproduce the splits we train on.
+Raw dataset images and generated indexes are not committed to Git. Download datasets from their official sources and review their licenses and usage terms before use or redistribution.
 
-> **The raw images are NOT committed to Git.** CULane alone is ~30 GB. `data/` is covered by `.gitignore`; only small, reproducible files (index/list files, scripts, this README) are tracked.
+## Current implementation status
 
----
+**Implemented:** CULane-oriented indexing and annotation parsing in `src/lane_detection/lane_core.py`; row-anchor targets for the current ResNet-18 model; optional synthetic fog, rain and night augmentation.
 
-## 1. Datasets used
+**Not implemented yet:** dedicated BDD100K and FoggyLane adapters. The presence of a dataset in this document does not mean it has been integrated or used in a completed experiment. BDD100K and FoggyLane results must not be claimed until their loaders, annotation conversion, split logic and evaluations are implemented and run.
 
-We train and evaluate on **real-world images only** (no synthetic data).
+## Dataset sources
 
-| Dataset | Used for | Conditions | Notes |
-|---|---|---|---|
-| **CULane** | Primary training and evaluation | Night, dazzle-light, shadow, normal | ~133K frames in total. We use the **night subset** (and its dazzle/shadow test categories). |
-| **BDD100K** | Rain / fog / night diversity | Rainy, foggy, night (via weather and time-of-day tags) | Filtered using the `weather` and `timeofday` attributes in its label JSON. |
-| **FoggyLane** (optional) | Extra real foggy-driving images | Fog | Candidate source for the fog stage ([arXiv 2504.06121](https://arxiv.org/abs/2504.06121)). |
+- **CULane:** https://xingangpan.github.io/projects/CULane.html
+- **BDD100K:** https://bdd-data.berkeley.edu/
+- **FoggyLane:** verify the dataset/paper source, license and annotation format before use.
 
-Training follows a staged strategy: **clear → night → fog/rain**. Night is trained first, and fog/rain data is added in later runs.
+## CULane annotations
 
-### Where to get them
+CULane uses one `*.lines.txt` file per image. Each line describes a lane as a sequence of pixel-coordinate `x y` pairs. Split lists such as `train_gt.txt`, `val_gt.txt` and files under `test_split/` are used by the current index builder.
 
-- **CULane** — <https://xingangpan.github.io/projects/CULane.html> (also mirrored on Kaggle)
-- **BDD100K** — <https://doc.bdd100k.com> / <https://bdd-data.berkeley.edu> (also on Kaggle)
-- **FoggyLane** — see the paper linked above
+The model maps these polylines to row-anchor targets: for each predefined image row and each of four lane slots, it predicts a column bin or the “no lane” class.
 
-Please check each dataset's license and terms of use before use or redistribution. These datasets are intended for research and non-commercial use.
+## Build an index
 
----
+From the repository root:
 
-## 2. Splits we actually train on
+```bash
+python src/lane_detection/lane_core.py index --root /path/to/culane --out index.json --night_only
+```
 
-| Split | Source | Frames |
-|---|---|---|
-| Night train | CULane (night only) | **9,593** |
-| Night val | CULane (night only) | **527** |
-| Test | CULane real test frames, per category | normal, dazzle-light, night, shadow |
+On Windows PowerShell, for example:
 
-Dazzle-light and shadow are reported separately because they are the hardest cases in CULane.
+```powershell
+python src/lane_detection/lane_core.py index --root "D:\datasets\CULane" --out index.json --night_only
+```
 
----
+Review the printed image root, list directory, and train/validation/test counts. The generated index contains local paths and is not portable to another machine without rebuilding it.
 
-## 3. Annotation formats
+## Weather augmentation and enhancement
 
-The two main datasets use different schemas. Reconciling them is handled in the data-loading code under `src/lane_detection/`.
+The current code supports synthetic fog, rain and night augmentation, plus optional CLAHE, adaptive gamma correction and dark-channel-prior dehazing. Synthetic weather is not a substitute for evaluation on real adverse-weather footage. Keep real and synthetic results in separate tables.
 
-- **CULane** — one `*.lines.txt` per image. Each line is one lane, given as a flat list of `x y` points (pixel coordinates). Split lists are plain text files under `list/`.
-- **BDD100K** — JSON labels. Lane markings are polylines (with lane-style and direction attributes), and each image carries `weather` (e.g. rainy, foggy, clear) and `timeofday` (e.g. night) tags that we use for filtering.
+The current enhancement heuristic is a general preprocessing heuristic, not a verified weather classifier. Do not describe it as reliable rain detection or glare/reflection suppression without implementing and testing those functions.
 
-Both are converted to **a single row-anchor representation** (for the Ultra-Fast-Lane-Detection-style, ResNet-18-based model): for a fixed set of image rows, the x-position of each lane, or "no lane" if it is absent.
+## Evaluation protocol
 
----
+- Keep the final test split out of training and all parameter/threshold selection.
+- Choose brightness thresholds using training/validation data, freeze them, and only then evaluate the test set.
+- Compare enhancement on/off with the same checkpoint and the same held-out images.
+- Report lane F1, precision, recall, latency and FPS separately for each condition, including sample count and hardware.
+- The current metric code is a CULane-style approximation. Use the official CULane evaluation tool for benchmark claims where feasible.
+- Values in README tables are targets, not achieved results. Treat saved sample outputs as preliminary unless a reproducible evaluation run verifies them.
 
-## 4. Preprocessing
+## Data hygiene
 
-Condition-specific enhancement is applied before the detector (toggle with `--enhance` in training and eval):
-
-- **Night / low light:** CLAHE and gamma correction
-- **Fog:** lightweight dehazing (e.g. dark channel prior)
-- **Rain:** glare/reflection suppression
-
-Training augmentations are limited to geometric and photometric changes applied to the real images.
-
----
-
-## 5. Reproducing the data setup
-
-1. Download the datasets you need (keep to the minimum — start with CULane night).
-2. Place them under `data/` (or edit the dataset paths in `configs/`).
-3. Build the night index:
-   ```bash
-   python -m lane_detection.data.build_index --dataset culane --condition night
-   ```
-   *(Replace with the actual script/module name in `src/lane_detection/` if it differs.)*
-4. Run a quick sanity check by drawing annotations onto a few frames before training.
-
----
-
-## 6. Evaluation metrics
-
-- **F1 at an IoU threshold** (CULane-style lane matching), reported per condition
-- **Mean IoU**
-
-Targets: overall F1 ≥ 80%, per-condition F1 ≥ 75%, and ≥ 15 FPS at inference.
-
----
-
-## 7. Notes
-
-- Never commit raw datasets, checkpoints, or generated caches. Share trained weights through GitHub Releases.
-- If you add a new dataset (e.g. extra fog or rain data), document its source, license, and annotation format here and add the conversion step to the loader.
+Do not commit raw images, personal footage, generated caches or model checkpoints without checking size and license constraints. Record dataset version, split-generation method, random seed and annotation-conversion version for each experiment.
