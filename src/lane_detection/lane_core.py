@@ -408,21 +408,15 @@ def build_index(root, out, n_train=30000, n_val=2000, n_test=1500, seed=0, night
         index["test"]["normal"] = [p for p, b in te if b >= thr0][:n_test]
         index["test"]["night"] = [p for p, b in te if 0 <= b < thr0][:n_test]
 
-    # --- what does "night" mean? calibrate on the official night test frames --------------------------
-    thr = night_thresh
-    if not thr:
-        thr = NIGHT_BRIGHTNESS
-        if index["test"].get("night"):
-            bn = np.array([b for _, b in _tag(index["test"]["night"][:300], cache) if b >= 0])
-            if len(bn):
-                thr = float(np.clip(np.percentile(bn, 95), 40, 110))
-                msg = f"official night frames: median brightness {np.median(bn):.0f}, 95th pct {np.percentile(bn, 95):.0f}"
-                if index["test"].get("normal"):
-                    bd = np.array([b for _, b in _tag(index["test"]["normal"][:300], cache) if b >= 0])
-                    msg += f" | normal frames median {np.median(bd):.0f}"
-                print(msg)
+    # --- night threshold ---------------------------------------------------------------
+    # Never tune a preprocessing/sampling threshold from held-out test frames. Use the
+    # explicit user-supplied value, or the documented fixed default; calibrate externally
+    # on train/validation data only if a dataset-specific threshold is needed.
+    thr = float(night_thresh) if night_thresh > 0 else float(NIGHT_BRIGHTNESS)
     index["night_thresh"] = thr
     print(f"night threshold (mean gray < thr): {thr:.0f}")
+    if night_thresh <= 0:
+        print("using fixed default threshold; do not tune this value using test-set images")
 
     # --- train / val ------------------------------------------------------------------------------
     if night_only:
